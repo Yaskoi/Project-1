@@ -1,49 +1,44 @@
-# History files
-.Rhistory
-.Rapp.history
+library(tidyverse)
+library(lubridate)
+library(grid)
+library(stargazer)
+library(ipumsr)
+library(readr)
 
-# Session Data files
-.RData
-.RDataTmp
+pums <- read.table(paste("QOB.raw",sep=""),
+                   header           = FALSE,
+                   stringsAsFactors = FALSE)
+colnames(pums)[c(1,2,4,5,6,9:13,16,18,19:21,24,25,27)] <- c("AGE", "AGEQ", "EDUC", "ENOCENT","ESOCENT", "LWKLYWGE", "MARRIED", "MIDATL", "MT", "NEWENG", "CENSUS", "QOB", "RACE", "SMSA", "SOATL", "WNOCENT", "WSOCENT", "YOB")
+pums <- as_tibble(pums)
+pums
 
-# User-specific files
-.Ruserdata
+pums %>%
+  mutate(cohort = factor(1*(YOB<=39 & YOB >=30) +
+                           2*(YOB<=49 & YOB >=40),
+                         levels=c(1,2), labels=c("30-39","40-49")) ) -> pums
 
-# Example code in package build process
-*-Ex.R
+pums
 
-# Output files from R CMD build
-/*.tar.gz
+# Add proper dates
+ymd(paste("19",30,4 * 3, sep=""),truncated = 2)
 
-# Output files from R CMD check
-/*.Rcheck/
+ggplot(pums, aes(x = YOB)) +
+  geom_line(y = EDUC) +
+  geom_point(aes(label = QOB), color = "red") +
+  labs(title = "Average education by quarter of birth", x = "Year of birth", y = "Year of education")
 
-# RStudio files
-.Rproj.user/
+ggplot(pums, aes(x = YOB)) +
+  geom_line(aes(y = LWKLYWGE)) +
+  ggtitle("Average weekly wage by quarter of birth") +
+  labs(x = "Years of birth", y = "Log weekly earnings")
 
-# produced vignettes
-vignettes/*.html
-vignettes/*.pdf
+pums %>%
+  filter(cohort == "30-39") -> pums.tab5
 
-# OAuth2 token, see https://github.com/hadley/httr/releases/tag/v0.3
-.httr-oauth
+## Table 5 analysis
+exo2 =  "AGEQ +  I(AGEQ^2)"
+exo3 = "RACE + MARRIED + SMSA + NEWENG + MIDATL + ENOCENT +
+        WNOCENT + SOATL + ESOCENT + WSOCENT + MT"
 
-# knitr and R markdown default cache directories
-*_cache/
-/cache/
-
-# Temporary files created by R markdown
-*.utf8.md
-*.knit.md
-
-# R Environment Variables
-.Renviron
-
-# pkgdown site
-docs/
-
-# translation temp files
-po/*~
-
-# RStudio Connect folder
-rsconnect/
+reg.pums = lm(EDUC ~ exo3, data = pums)
+summary(reg.pums)
