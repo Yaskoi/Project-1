@@ -20,6 +20,7 @@ pums %>%
 # Add proper dates
 pums$date <- ymd(paste("19", pums$YOB, pums$QOB * 3, sep=""), truncated = 2)
 
+# Time series graphics
 ggplot(pums, aes(x = date, y = EDUC, label = QOB)) +
   geom_line() +
   geom_label(data = subset(pums, QOB == "1"), fill = "red", color = "white", label.r = unit(0.1, "in")) +
