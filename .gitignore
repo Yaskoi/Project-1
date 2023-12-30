@@ -17,19 +17,31 @@ pums %>%
                            2*(YOB<=49 & YOB >=40),
                          levels=c(1,2), labels=c("30-39","40-49")) ) -> pums
 
-pums
-
 # Add proper dates
-ymd(paste("19",30,4 * 3, sep=""),truncated = 2)
+pums$date <- ymd(paste("19", pums$YOB, pums$QOB * 3, sep=""), truncated = 2)
 
-ggplot(pums, aes(x = YOB, y = EDUC)) +
-  geom_line() + 
-  geom_point() +  
-  geom_text(aes(label = QOB), vjust = -0.5, hjust = 0.5) +  
-  theme_minimal() +
-  scale_color_manual(values = c("red", "black", "black", "black"))
+ggplot(pums, aes(x = date, y = EDUC, label = QOB)) +
+  geom_line() +
+  geom_label(data = subset(pums, QOB == "1"), fill = "red", color = "white", label.r = unit(0.1, "in")) +
+  geom_label(data = subset(pums, QOB != "1"), fill = "black", color = "white", label.r = unit(0.1, "in")) +
+  scale_color_manual(values = c("red", "black", "black", "black")) +
+  ggtitle("Average education by quarter of birth") +
+  labs(x = "Year of birth", y = "Years of education", color = "")
 
-ggplot(pums, aes(x = YOB)) +
-  geom_line(aes(y = LWKLYWGE)) +
+ggplot(pums, aes(x = date, y = LWKLYWGE , label = QOB)) +
+  geom_line() +
+  geom_label(data = subset(pums, QOB == "1"), fill = "red", color = "white", label.r = unit(0.1, "in")) +
+  geom_label(data = subset(pums, QOB != "1"), fill = "black", color = "white", label.r = unit(0.1, "in")) +
+  scale_color_manual(values = c("red", "black", "black", "black")) +
   ggtitle("Average weekly wage by quarter of birth") +
-  labs(x = "Years of birth", y = "Log weekly earnings")
+  labs(x = "Year of birth", y = "Log weekly earnings", color = "")
+
+pums %>%
+  filter(cohort == "30-39") -> pums.tab5
+
+## Table 5 analysis
+exo2 =  "AGEQ +  I(AGEQ^2)"
+exo3 = "RACE + MARRIED + SMSA + NEWENG + MIDATL + ENOCENT +
+        WNOCENT + SOATL + ESOCENT + WSOCENT + MT"
+
+reg <- lm(LWKLYWGE, exo3, data = pums)
