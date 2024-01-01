@@ -45,4 +45,21 @@ exo2 =  "AGEQ +  I(AGEQ^2)"
 exo3 = "RACE + MARRIED + SMSA + NEWENG + MIDATL + ENOCENT +
         WNOCENT + SOATL + ESOCENT + WSOCENT + MT"
 
-reg <- lm(LWKLYWGE, exo3, data = pums)
+reg_wage.MCO <- lm(LWKLYWGE ~ RACE + MARRIED + SMSA + EDUC + AGEQ + I(AGEQ^2), data = pums.tab5)
+
+reg_wage_a <- lm(LWKLYWGE ~ EDUC, data = pums.tab5)
+
+reg_wage_b <- lm(LWKLYWGE ~ EDUC  + AGEQ + I(AGEQ^2), data = pums.tab5)
+
+reg_wage_c <- lm(LWKLYWGE ~ EDUC + RACE + SMSA + MARRIED, data = pums.tab5)
+
+reg_wage_d <- lm(LWKLYWGE ~ EDUC + RACE + SMSA + MARRIED + AGEQ + I(AGEQ^2), data = pums.tab5)
+
+OLS_table <- stargazer(reg_wage_a,reg_wage_b,reg_wage_c,reg_wage_d,
+                      dep.var.caption="",dep.var.labels="",
+                      omit.table.layout = "n", star.cutoffs = NA,keep.stat=c("n","rsq"),
+                      no.space=TRUE, digits=4,
+                      header=FALSE,
+                      column.labels=c("OLS", "OLS", "OLS", "OLS"), 
+                      title="Table OLS", type="text"
+                      )
