@@ -57,7 +57,7 @@ names(reg_wage_a.TSLS$coefficients)[2] <- "EDUC"
 reg_wage_b.MCO <- lm(LWKLYWGE ~ EDUC + YOB + AGE + I(AGE^2), data = pums.tab5)
 
 reg_wage_b.TSLS <- lm(LWKLYWGE ~ predicted + YOB + AGE + I(AGE^2), data = pums.tab5)
-names(reg_wage_a.TSLS$coefficients)[2] <- "EDUC"
+names(reg_wage_b.TSLS$coefficients)[2] <- "EDUC"
 
 reg_wage_c.MCO <- lm(LWKLYWGE ~ EDUC + YOB + RACE + SMSA + MARRIED + NEWENG + MIDATL + ENOCENT +  WNOCENT + SOATL + ESOCENT + WSOCENT + MT, data = pums.tab5)
 
