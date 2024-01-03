@@ -109,6 +109,9 @@ table4 = stargazer(reg_wage_d.MCO, reg_wage_d.TSLS,
                     title="", type="text"
 )
 
-tableau <- merge(table1, table2, table3, table4)
+tableau1 <- merge(table1, table2)
+tableau2 <- merge(table3, table4)
+
+tableau <- merge(tableau1, tableau2)
 
 pums.tab5$wald_dum <- (pums.tab5$QOB == 3 | pums.tab5$QOB == 4) * 1
