@@ -46,7 +46,7 @@ exo2 =  "AGEQ +  I(AGEQ^2)"
 exo3 = "RACE + MARRIED + SMSA + NEWENG + MIDATL + ENOCENT +
         WNOCENT + SOATL + ESOCENT + WSOCENT + MT"
 
-reg_wage.etape1 <- lm(EDUC ~ QOB*YOB, data = pums.tab5)
+reg_wage.etape1 <- ivreg(EDUC ~ QOB * YOB, data = pums.tab5)
 pums.tab5$predicted <- predict(reg_wage.etape1)
 
 reg_wage_a.MCO <- lm(LWKLYWGE ~ EDUC + YOB, data = pums.tab5)
@@ -54,64 +54,29 @@ reg_wage_a.MCO <- lm(LWKLYWGE ~ EDUC + YOB, data = pums.tab5)
 reg_wage_a.TSLS <- lm(LWKLYWGE ~ predicted + YOB, data = pums.tab5)
 names(reg_wage_a.TSLS$coefficients)[2] <- "EDUC"
 
-table1 = stargazer(reg_wage_a.MCO, reg_wage_a.TSLS,
-          dep.var.caption="",dep.var.labels="",
-          omit.table.layout = "n", star.cutoffs = NA,keep.stat=c("rsq","n"),
-          no.space=TRUE, digits=3,
-          header=FALSE,
-          keep=c("EDUC", "RACE", "SMSA", "MARRIED", "AGE", "I(AGE^2)"),
-          column.labels = c("OLS", "TSLS"),
-          title="", type="text"
-          )
-
 reg_wage_b.MCO <- lm(LWKLYWGE ~ EDUC + YOB + AGE + I(AGE^2), data = pums.tab5)
 
 reg_wage_b.TSLS <- lm(LWKLYWGE ~ predicted + YOB + AGE + I(AGE^2), data = pums.tab5)
 names(reg_wage_a.TSLS$coefficients)[2] <- "EDUC"
-
-table2 = stargazer(reg_wage_b.MCO, reg_wage_b.TSLS,
-                    dep.var.caption="",dep.var.labels="",
-                    omit.table.layout = "n", star.cutoffs = NA,keep.stat=c("rsq","n"),
-                    no.space=TRUE, digits=3,
-                    header=FALSE,
-                    keep=c("EDUC", "RACE", "SMSA", "MARRIED", "AGE", "I(AGE^2)"),
-                    column.labels = c("OLS", "TSLS"),
-                    title="", type="text"
-)
 
 reg_wage_c.MCO <- lm(LWKLYWGE ~ EDUC + YOB + RACE + SMSA + MARRIED + NEWENG + MIDATL + ENOCENT +  WNOCENT + SOATL + ESOCENT + WSOCENT + MT, data = pums.tab5)
 
 reg_wage_c.TSLS <- lm(LWKLYWGE ~ predicted + YOB + RACE + SMSA + MARRIED + NEWENG + MIDATL + ENOCENT +  WNOCENT + SOATL + ESOCENT + WSOCENT + MT, data = pums.tab5)
 names(reg_wage_c.TSLS$coefficients)[2] <- "EDUC"
 
-table3 = stargazer(reg_wage_c.MCO, reg_wage_c.TSLS,
-                    dep.var.caption="",dep.var.labels="",
-                    omit.table.layout = "n", star.cutoffs = NA,keep.stat=c("rsq","n"),
-                    no.space=TRUE, digits=4,
-                    header=FALSE,
-                    keep=c("EDUC", "RACE", "SMSA", "MARRIED", "AGE", "I(AGE^2)"),
-                    column.labels = c("OLS", "TSLS"),
-                    title="", type="text"
-)
-
 reg_wage_d.MCO <- lm(LWKLYWGE ~ EDUC + YOB + RACE + SMSA + MARRIED + AGE + I(AGE^2) + NEWENG + MIDATL + ENOCENT +  WNOCENT + SOATL + ESOCENT + WSOCENT + MT, data = pums.tab5)
 
 reg_wage_d.TSLS <- lm(LWKLYWGE ~ predicted + YOB + RACE + SMSA + MARRIED + AGE + I(AGE^2) + NEWENG + MIDATL + ENOCENT +  WNOCENT + SOATL + ESOCENT + WSOCENT + MT, data = pums.tab5)
 names(reg_wage_d.TSLS$coefficients)[2] <- "EDUC"
 
-table4 = stargazer(reg_wage_d.MCO, reg_wage_d.TSLS,
-                    dep.var.caption="",dep.var.labels="",
-                    omit.table.layout = "n", star.cutoffs = NA,keep.stat=c("rsq","n"),
-                    no.space=TRUE, digits=4,
-                    header=FALSE,
-                    keep=c("EDUC", "RACE", "SMSA", "MARRIED", "AGE", "I(AGE^2)"),
-                    column.labels = c("OLS", "TSLS"),
-                    title="", type="text"
+table = stargazer(reg_wage_a.MCO, reg_wage_b.TSLS, reg_wage_b.MCO, reg_wage_b.TSLS, reg_wage_c.MCO, reg_wage_c.TSLS, reg_wage_d.MCO, reg_wage_d.TSLS,
+                   dep.var.caption="",dep.var.labels="",
+                   omit.table.layout = "n", star.cutoffs = NA,keep.stat=c("rsq","n"),
+                   no.space=TRUE, digits=4,
+                   header=FALSE,
+                   keep=c("EDUC", "RACE", "SMSA", "MARRIED", "AGE", "I(AGE^2)"),
+                   column.labels = c("OLS", "TSLS"),
+                   title="OLS and TSLS Estimates of the Return to Education for Men Born 1930-1939: 1980 Census", type="text"
 )
-
-tableau1 <- merge(table1, table2)
-tableau2 <- merge(table3, table4)
-
-tableau <- merge(tableau1, tableau2)
 
 pums.tab5$wald_dum <- (pums.tab5$QOB == 3 | pums.tab5$QOB == 4) * 1
