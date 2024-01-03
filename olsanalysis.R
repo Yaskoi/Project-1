@@ -59,14 +59,14 @@ table1 = stargazer(reg_wage_a.MCO, reg_wage_a.TSLS,
           omit.table.layout = "n", star.cutoffs = NA,keep.stat=c("rsq","n"),
           no.space=TRUE, digits=3,
           header=FALSE,
-          keep=c("EDUC", "RACE", "SMSA", "MARRIED", "AGEQ", "I(AGEQ^2)"),
+          keep=c("EDUC", "RACE", "SMSA", "MARRIED", "AGE", "I(AGE^2)"),
           column.labels = c("OLS", "TSLS"),
           title="", type="text"
           )
 
-reg_wage_b.MCO <- lm(LWKLYWGE ~ EDUC + YOB + AGEQ + I(AGEQ^2), data = pums.tab5)
+reg_wage_b.MCO <- lm(LWKLYWGE ~ EDUC + YOB + AGE + I(AGE^2), data = pums.tab5)
 
-reg_wage_b.TSLS <- lm(LWKLYWGE ~ predicted + YOB + AGEQ + I(AGEQ^2), data = pums.tab5)
+reg_wage_b.TSLS <- lm(LWKLYWGE ~ predicted + YOB + AGE + I(AGE^2), data = pums.tab5)
 names(reg_wage_a.TSLS$coefficients)[2] <- "EDUC"
 
 table2 = stargazer(reg_wage_b.MCO, reg_wage_b.TSLS,
@@ -74,7 +74,7 @@ table2 = stargazer(reg_wage_b.MCO, reg_wage_b.TSLS,
                     omit.table.layout = "n", star.cutoffs = NA,keep.stat=c("rsq","n"),
                     no.space=TRUE, digits=3,
                     header=FALSE,
-                    keep=c("EDUC", "RACE", "SMSA", "MARRIED", "AGEQ", "I(AGEQ^2)"),
+                    keep=c("EDUC", "RACE", "SMSA", "MARRIED", "AGE", "I(AGE^2)"),
                     column.labels = c("OLS", "TSLS"),
                     title="", type="text"
 )
@@ -89,14 +89,14 @@ table3 = stargazer(reg_wage_c.MCO, reg_wage_c.TSLS,
                     omit.table.layout = "n", star.cutoffs = NA,keep.stat=c("rsq","n"),
                     no.space=TRUE, digits=4,
                     header=FALSE,
-                    keep=c("EDUC", "RACE", "SMSA", "MARRIED", "AGEQ", "I(AGEQ^2)"),
+                    keep=c("EDUC", "RACE", "SMSA", "MARRIED", "AGE", "I(AGE^2)"),
                     column.labels = c("OLS", "TSLS"),
                     title="", type="text"
 )
 
-reg_wage_d.MCO <- lm(LWKLYWGE ~ EDUC + YOB + RACE + SMSA + MARRIED + AGEQ + I(AGEQ^2) + NEWENG + MIDATL + ENOCENT +  WNOCENT + SOATL + ESOCENT + WSOCENT + MT, data = pums.tab5)
+reg_wage_d.MCO <- lm(LWKLYWGE ~ EDUC + YOB + RACE + SMSA + MARRIED + AGE + I(AGE^2) + NEWENG + MIDATL + ENOCENT +  WNOCENT + SOATL + ESOCENT + WSOCENT + MT, data = pums.tab5)
 
-reg_wage_d.TSLS <- lm(LWKLYWGE ~ predicted + YOB + RACE + SMSA + MARRIED + AGEQ + I(AGEQ^2) + NEWENG + MIDATL + ENOCENT +  WNOCENT + SOATL + ESOCENT + WSOCENT + MT, data = pums.tab5)
+reg_wage_d.TSLS <- lm(LWKLYWGE ~ predicted + YOB + RACE + SMSA + MARRIED + AGE + I(AGE^2) + NEWENG + MIDATL + ENOCENT +  WNOCENT + SOATL + ESOCENT + WSOCENT + MT, data = pums.tab5)
 names(reg_wage_d.TSLS$coefficients)[2] <- "EDUC"
 
 table4 = stargazer(reg_wage_d.MCO, reg_wage_d.TSLS,
@@ -104,7 +104,7 @@ table4 = stargazer(reg_wage_d.MCO, reg_wage_d.TSLS,
                     omit.table.layout = "n", star.cutoffs = NA,keep.stat=c("rsq","n"),
                     no.space=TRUE, digits=4,
                     header=FALSE,
-                    keep=c("EDUC", "RACE", "SMSA", "MARRIED", "AGEQ", "I(AGEQ^2)"),
+                    keep=c("EDUC", "RACE", "SMSA", "MARRIED", "AGE", "I(AGE^2)"),
                     column.labels = c("OLS", "TSLS"),
                     title="", type="text"
 )
