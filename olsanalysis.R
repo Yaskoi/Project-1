@@ -1,6 +1,7 @@
 library(tidyverse)
 library(lubridate)
 library(grid)
+library(dplyr)
 library(AER)
 library(stargazer)
 library(ipumsr)
@@ -21,16 +22,20 @@ pums %>%
 # Add proper dates
 pums$date <- ymd(paste("19", pums$YOB, pums$QOB * 3, sep=""), truncated = 2)
 
+pums_aggregated <- pums %>%
+  group_by(date, QOB) %>%
+  summarise(EDUC = mean(EDUC))
+
 # Time series graphics
-ggplot(pums, aes(x = date, y = EDUC, label = QOB)) +
+ggplot(pums_aggregated, aes(x = date, y = EDUC, label = QOB)) +
   geom_line() +
-  geom_label(data = subset(pums, QOB == "1"), fill = "red", color = "white", label.r = unit(0.1, "in")) +
-  geom_label(data = subset(pums, QOB != "1"), fill = "black", color = "white", label.r = unit(0.1, "in")) +
+  geom_label(data = subset(pums_aggregated, QOB == "1"), fill = "red", color = "white", label.r = unit(0.1, "in")) +
+  geom_label(data = subset(pums_aggregated, QOB != "1"), fill = "black", color = "white", label.r = unit(0.1, "in")) +
   scale_color_manual(values = c("red", "black", "black", "black")) +
   ggtitle("Average education by quarter of birth") +
   labs(x = "Year of birth", y = "Years of education", color = "")
 
-ggplot(pums, aes(x = date, y = LWKLYWGE , label = QOB)) +
+ggplot(pums_aggregated, aes(x = date, y = LWKLYWGE , label = QOB)) +
   geom_line() +
   geom_label(data = subset(pums, QOB == "1"), fill = "red", color = "white", label.r = unit(0.1, "in")) +
   geom_label(data = subset(pums, QOB != "1"), fill = "black", color = "white", label.r = unit(0.1, "in")) +
