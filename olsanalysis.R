@@ -24,7 +24,10 @@ pums$date <- ymd(paste("19", pums$YOB, pums$QOB * 3, sep=""), truncated = 2)
 
 pums_aggregated <- pums %>%
   group_by(date, QOB) %>%
-  summarise(EDUC = mean(EDUC))
+  summarise(
+    EDUC = mean(EDUC),
+    LWKLYWGE = mean(LWKLYWGE)
+    )
 
 # Time series graphics
 ggplot(pums_aggregated, aes(x = date, y = EDUC, label = QOB)) +
