@@ -77,26 +77,14 @@ reg_wage_d.MCO <- lm(LWKLYWGE ~ EDUC + YOB + RACE + SMSA + MARRIED + AGE + I(AGE
 reg_wage_d.TSLS <- lm(LWKLYWGE ~ predicted + YOB + RACE + SMSA + MARRIED + AGE + I(AGE^2) + NEWENG + MIDATL + ENOCENT +  WNOCENT + SOATL + ESOCENT + WSOCENT + MT, data = pums.tab5)
 names(reg_wage_d.TSLS$coefficients)[2] <- "EDUC"
 
-table1 = stargazer(reg_wage_a.MCO, reg_wage_b.MCO, reg_wage_c.MCO, reg_wage_d.MCO,
+table = stargazer(reg_wage_a.MCO, reg_wage_a.TSLS, reg_wage_b.MCO, reg_wage_b.TSLS, reg_wage_c.MCO, reg_wage_c.TSLS, reg_wage_d.MCO, reg_wage_d.TSLS,
                    dep.var.caption="",dep.var.labels="",
                    omit.table.layout = "n", star.cutoffs = NA,keep.stat=c("rsq","n"),
                    no.space=TRUE, digits=4,
                    header=FALSE,
                    keep=c("EDUC", "RACE", "SMSA", "MARRIED", "AGE", "I(AGE^2)"),
-                   column.labels = c("OLS", "TSLS"),
+                   column.labels = c("OLS", "TSLS", "OLS", "TSLS", "OLS", "TSLS", "OLS", "TSLS"),
                    title="OLS and TSLS Estimates of the Return to Education for Men Born 1930-1939: 1980 Census", type="text"
-)
-
-table2 = stargazer(reg_wage_a.TSLS, reg_wage_b.TSLS, reg_wage_c.TSLS, reg_wage_d.TSLS,
-                   dep.var.caption="",dep.var.labels="",
-                   omit.table.layout = "n", star.cutoffs = NA,keep.stat=c("rsq","n"),
-                   no.space=TRUE, digits=4,
-                   header=FALSE,
-                   keep=c("EDUC", "RACE", "SMSA", "MARRIED", "AGE", "I(AGE^2)"),
-                   column.labels = c("OLS", "TSLS"),
-                   title="OLS and TSLS Estimates of the Return to Education for Men Born 1930-1939: 1980 Census", type="text"
-)
-
-tableau <- merge(table1, table2)
+                  )
 
 pums.tab5$wald_dum <- (pums.tab5$QOB == 3 | pums.tab5$QOB == 4) * 1
