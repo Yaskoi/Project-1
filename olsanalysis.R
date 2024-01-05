@@ -40,8 +40,8 @@ ggplot(pums_aggregated, aes(x = date, y = EDUC, label = QOB)) +
 
 ggplot(pums_aggregated, aes(x = date, y = LWKLYWGE , label = QOB)) +
   geom_line() +
-  geom_label(data = subset(pums, QOB == "1"), fill = "red", color = "white", label.r = unit(0.1, "in")) +
-  geom_label(data = subset(pums, QOB != "1"), fill = "black", color = "white", label.r = unit(0.1, "in")) +
+  geom_label(data = subset(pums_aggregated, QOB == "1"), fill = "red", color = "white", label.r = unit(0.1, "in")) +
+  geom_label(data = subset(pums_aggregated, QOB != "1"), fill = "black", color = "white", label.r = unit(0.1, "in")) +
   scale_color_manual(values = c("red", "black", "black", "black")) +
   ggtitle("Average weekly wage by quarter of birth") +
   labs(x = "Year of birth", y = "Log weekly earnings", color = "")
