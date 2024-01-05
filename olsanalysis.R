@@ -77,37 +77,21 @@ reg_wage_d.MCO <- lm(LWKLYWGE ~ EDUC + YOB + RACE + SMSA + MARRIED + AGE + I(AGE
 reg_wage_d.TSLS <- lm(LWKLYWGE ~ predicted + YOB + RACE + SMSA + MARRIED + AGE + I(AGE^2) + NEWENG + MIDATL + ENOCENT +  WNOCENT + SOATL + ESOCENT + WSOCENT + MT, data = pums.tab5)
 names(reg_wage_d.TSLS$coefficients)[2] <- "EDUC"
 
-# ModÃ¨les OLS
-ols_models <- list(reg_wage_a.MCO, reg_wage_b.MCO, reg_wage_c.MCO, reg_wage_d.MCO)
-
-# ModÃ¨les TSLS
-tsls_models <- list(reg_wage_a.TSLS, reg_wage_b.TSLS, reg_wage_c.TSLS, reg_wage_d.TSLS)
-
 # Variables Ã  garder
 keep_vars <- c("EDUC", "RACE", "SMSA", "MARRIED", "AGE", "I(AGE^2)")
 
-# Boucle sur chaque variable
-for (var in keep_vars) {
-  # Fusionner les modÃ¨les OLS et TSLS pour une variable donnÃ©e
-  merged_model <- list(ols_models[[1]], tsls_models[[1]], ols_models[[2]], tsls_models[[2]],
-                       ols_models[[3]], tsls_models[[3]], ols_models[[4]], tsls_models[[4]])
-
-  # CrÃ©er le tableau stargazer pour la variable actuelle
-  tableau3b <- stargazer(merged_model,
-                                dep.var.caption = "",
-                                 dep.var.labels = "",
-                                 omit.table.layout = "n",
-                                 star.cutoffs = NA,
-                                 keep.stat = c("rsq", "n"),
-                                 no.space = TRUE,
-                                 digits = 4,
-                                 header = FALSE,
-                                 keep = var,
-                                 title = paste("Estimates of the Return to Education for Men Born 1930-1939:", var, "1980 Census"),
-                                 type = "text"
+tableau3b <- stargazer(reg_wage_a.MCO, reg_wage_a.TSLS, reg_wage_b.MCO, reg_wage_b.TSLS, reg_wage_c.MCO, reg_wage_c.TSLS, reg_wage_d.MCO, reg_wage_d.TSLS,
+                        dep.var.caption = "",
+                        dep.var.labels = "",
+                        omit.table.layout = "n",
+                        star.cutoffs = NA,
+                        keep.stat = c("rsq", "n"),
+                        no.space = TRUE,
+                        digits = 4,
+                        header = FALSE,
+                        keep = keep_vars,
+                        title = paste("Estimates of the Return to Education for Men Born 1930-1939:", var, "1980 Census"),
+                        type = "text"
   )
-}
-
-tableau3b
 
 pums.tab5$wald_dum <- (pums.tab5$QOB == 3 | pums.tab5$QOB == 4) * 1
