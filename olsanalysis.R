@@ -86,9 +86,6 @@ tsls_models <- list(reg_wage_a.TSLS, reg_wage_b.TSLS, reg_wage_c.TSLS, reg_wage_
 # Variables Ã  garder
 keep_vars <- c("EDUC", "RACE", "SMSA", "MARRIED", "AGE", "I(AGE^2)")
 
-# CrÃ©er une liste pour stocker les tableaux
-tableau3b <- list()
-
 # Boucle sur chaque variable
 for (var in keep_vars) {
   # Fusionner les modÃ¨les OLS et TSLS pour une variable donnÃ©e
@@ -96,8 +93,8 @@ for (var in keep_vars) {
                        ols_models[[3]], tsls_models[[3]], ols_models[[4]], tsls_models[[4]])
 
   # CrÃ©er le tableau stargazer pour la variable actuelle
-  tableau3b[[var]] <- stargazer(merged_model,
-                                 dep.var.caption = "",
+  tableau3b <- stargazer(merged_model,
+                                dep.var.caption = "",
                                  dep.var.labels = "",
                                  omit.table.layout = "n",
                                  star.cutoffs = NA,
