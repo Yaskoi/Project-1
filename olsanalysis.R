@@ -54,7 +54,7 @@ exo2 =  "AGEQ +  I(AGEQ^2)"
 exo3 = "RACE + MARRIED + SMSA + NEWENG + MIDATL + ENOCENT +
         WNOCENT + SOATL + ESOCENT + WSOCENT + MT"
 
-reg_wage.etape1 <- ivreg(EDUC ~ QOB * YOB, data = pums.tab5)
+reg_wage.etape1 <- lm(EDUC ~ QOB * YOB, data = pums.tab5)
 pums.tab5$predicted <- predict(reg_wage.etape1)
 
 reg_wage_a.MCO <- lm(LWKLYWGE ~ EDUC + YOB, data = pums.tab5)
