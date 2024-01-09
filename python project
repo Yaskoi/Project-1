@@ -1,11 +1,11 @@
 import mysql.connector
+import argparse
 import pymongo
 import requests
 import pandas as pd
 from bs4 import BeautifulSoup
 from prettytable import PrettyTable
 from tabulate import tabulate
-import argparse
 
 # Établissement de la connexion à la base de données sur le serveur distant
 connexion = mysql.connector.connect(
@@ -142,27 +142,23 @@ from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 
 
-
 # Séparation des caractéristiques (X) et de la variable cible (y)
 X = df_merged.drop(columns=['Risk', 'Credit Rating'], axis=1)
 y = df_merged['Risk']
-
-# Division des données en ensembles d'entrainement et de test
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=76)
 
 # Création du modèle de Gradient Boosting
 model = GradientBoostingClassifier(n_estimators=50, learning_rate=0.2, random_state=76)
 
 # Entrainement du modèle
-model.fit(X_train, y_train)
+model.fit(X, y)
 
 # Prédictions sur l'ensemble de test
-predictions = model.predict(X_test)
+predictions = model.predict(X)
 
 # Evaluation du modèle
-accuracy = accuracy_score(y_test, predictions)
-conf_matrix = confusion_matrix(y_test, predictions)
-class_report = classification_report(y_test, predictions)
+accuracy = accuracy_score(y, predictions)
+conf_matrix = confusion_matrix(y, predictions)
+class_report = classification_report(y, predictions)
 
 # Affichage des résultats
 print(f"Accuracy: {accuracy}")
@@ -170,6 +166,7 @@ print("Confusion matrix:")
 print(conf_matrix)
 print("Classification Report:")
 print(class_report)
+
 
 # Création d'un objet PrettyTable
 table3 = PrettyTable(['Company ID', 'Risks'])
@@ -180,6 +177,7 @@ for valeur1, valeur2 in zip(df_merged['Company ID'], predictions):
 
 # Affichage du tableau
 print(table3)
+
 
 # Creation du CSV
 
@@ -203,7 +201,7 @@ df['Risks'] = Risks
 
 # Recuperation du nom du fichier csv en argument avec argparse
 parser = argparse.ArgumentParser()
-parser.add_argument("--output", help="Nom du fichier csv")
+parser.add_argument("--output", help="predicts")
 
 args = parser.parse_args()
 
