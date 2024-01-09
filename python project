@@ -5,6 +5,7 @@ import pandas as pd
 from bs4 import BeautifulSoup
 from prettytable import PrettyTable
 from tabulate import tabulate
+import argparse
 
 # Établissement de la connexion à la base de données sur le serveur distant
 connexion = mysql.connector.connect(
@@ -179,3 +180,32 @@ for valeur1, valeur2 in zip(df_merged['Company ID'], predictions):
 
 # Affichage du tableau
 print(table3)
+
+# Creation du CSV
+
+# Creation de la colonne companyID
+
+companyID = df_merged['Company ID']
+
+# Creation de la colonne Risks
+
+Risks = predictions
+
+# Creation du dataframe avec la longueur de la colonne companyID
+min_length = min(len(companyID), len(Risks))
+
+# Create the dataframe with the minimum length
+df = pd.DataFrame(index=range(min_length))
+# Ajout des colonnes au dataframe
+
+df['Company ID'] = companyID
+df['Risks'] = Risks
+
+# Recuperation du nom du fichier csv en argument avec argparse
+parser = argparse.ArgumentParser()
+parser.add_argument("--output", help="Nom du fichier csv")
+
+args = parser.parse_args()
+
+# Creation du fichier csv
+df.to_csv(args.output, index=False, encoding='utf-8')
