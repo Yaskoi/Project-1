@@ -1,8 +1,3 @@
-pip install mysql-connector-python
-pip install pymongo prettytable
-pip install pymongo prettytable
-
-
 import mysql.connector
 import pymongo
 import requests
@@ -174,3 +169,13 @@ print("Confusion matrix:")
 print(conf_matrix)
 print("Classification Report:")
 print(class_report)
+
+# Création d'un objet PrettyTable
+table3 = PrettyTable(['Company ID', 'Risks'])
+
+# Ajout des données au tableau
+for valeur1, valeur2 in zip(df_merged['Company ID'], predictions):
+    table3.add_row([valeur1, valeur2])
+
+# Affichage du tableau
+print(table3)
