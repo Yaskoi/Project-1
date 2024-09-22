@@ -10,6 +10,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 
+
 connexion = mysql.connector.connect(
     host="144.24.194.65",
     port=3999,
