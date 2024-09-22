@@ -6,8 +6,10 @@ import pandas as pd
 from bs4 import BeautifulSoup
 from prettytable import PrettyTable
 from tabulate import tabulate
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import GradientBoostingClassifier
+from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 
-# Établissement de la connexion à la base de données sur le serveur distant
 connexion = mysql.connector.connect(
     host="144.24.194.65",
     port=3999,
@@ -16,32 +18,23 @@ connexion = mysql.connector.connect(
     database="mag1_project"
 )
 
-# Création d'un objet curseur pour exécuter des requêtes SQL
 curseur = connexion.cursor()
 
-#Nom de la table à exporter
 nom_table = "project"
 
-# Récupération des données de la table
 curseur.execute(f"SELECT * FROM {nom_table}")
 donnees = curseur.fetchall()
 
-# Création d'un objet PrettyTable avec trois colonnes
 mysqltable = PrettyTable(["Company ID", "Expenses", "R&D Spend"])
 
-# Ajout des données à la table
 mysqltable.add_rows(donnees)
 
-# Conversion en liste de dictionnaires
 donnees_mysql_liste = [dict(zip(mysqltable.field_names, ligne)) for ligne in mysqltable.rows]
 
-# Fermer le curseur et la connexion
 curseur.close()
 connexion.close()
 
 
-
-# Informations de connexion MongoDB
 adresse_connexion_mongodb = "208.87.130.253"
 port = 27017
 nom_utilisateur = "mag1_student"
@@ -49,85 +42,64 @@ mot_de_passe = "Gogo1gogo2"
 nom_base_de_donnees = "mag1_project"
 nom_collection = "project"
 
-# Connexion à la base de données MongoDB avec mot de passe
 client = pymongo.MongoClient(
     f"mongodb://mag1_student:Gogo1gogo2@208.87.130.253/mag1_project"
 )
 
-# Sélection de la base de données et de la collection
 db = client[nom_base_de_donnees]
 collection = db[nom_collection]
 
-# Récupération des données de la collection
 donnees = collection.find()
 
-# Liste des colonnes à afficher dans le tableau
 colonnes_a_afficher = ["Company ID", "Revenue", "Employee Count", "Credit Rating", "Risk"]
 
-# Tri des données par ID (supposons que l'ID est dans la colonne1)
 donnees_triees = sorted(donnees, key=lambda x: x.get("Company ID", ""))
 
-# Création d'un objet PrettyTable avec les colonnes spécifiées
 mongoDBtable = PrettyTable(colonnes_a_afficher)
 
-# Ajout des données triées à la table
 for ligne in donnees_triees:
     valeurs = [ligne.get(colonne, "") for colonne in colonnes_a_afficher]
     mongoDBtable.add_row(valeurs)
 
-# Conversion en liste de dictionnaires
 donnees_mongo_liste = [dict(zip(mongoDBtable.field_names, ligne)) for ligne in mongoDBtable.rows]
 
 
-# URL de la page HTML
 url = "https://h.chifu.eu/data.html"
 
-# Si la page nécessite une authentification, vous pouvez utiliser des sessions avec requests
 session = requests.Session()
 
-# Obtenir le contenu HTML de la page
 response = session.get(url)
 html_content = response.content
 
-# Utilisation de BeautifulSoup pour extraire les données de tableaux
 soup = BeautifulSoup(html_content, 'html.parser')
 table = soup.find('table')
 
-# Liste des colonnes à afficher dans le tableau
 colonnes_a_afficher = ["Company ID", "Profit", "Debt-to-Equity Ratio", "Price-to-Earnings", "Market Capitalization"]
 
-# Création d'un objet PrettyTable avec les colonnes spécifiées
 htmltable = PrettyTable(colonnes_a_afficher)
 
-# Ajout des données à la table
 donnees = []
 for ligne in table.find_all('tr'):
     valeurs = [colonne.text.strip() for colonne in ligne.find_all('td')]
     if valeurs:  # Ignorer les lignes sans données
         donnees.append(valeurs)
 
-# Trie des données en fonction de l'ID (supposons que l'ID est la première colonne)
 donnees_triees = sorted(donnees[1:], key=lambda x: int(x[0]))
 
-# Ajout des données triées à la table
 for valeurs in donnees_triees:
     htmltable.add_row(valeurs)
 
-# Conversion en liste de dictionnaires
 donnees_html_liste = [dict(zip(htmltable.field_names, ligne)) for ligne in htmltable.rows]
 
 
-# Convertir les listes en DataFrames pandas
 df1 = pd.DataFrame(donnees_mysql_liste)
 df2 = pd.DataFrame(donnees_mongo_liste)
 df3 = pd.DataFrame(donnees_html_liste)
 
-# Convertir la colonne "Company ID" en int dans chaque DataFrame
 df1["Company ID"] = df1["Company ID"].astype(int)
 df2["Company ID"] = df2["Company ID"].astype(int)
 df3["Company ID"] = df3["Company ID"].astype(int)
 
-# Fusionner les DataFrames sur la colonne "Company ID"
 df_merged = pd.merge(df3, df2, on="Company ID", how="outer")
 df_merged = pd.merge(df_merged, df1, on="Company ID", how="outer")
 df_merged = df_merged.dropna()
@@ -136,31 +108,20 @@ tableau = tabulate(df_merged, headers='keys', tablefmt='pretty')
 df_merged['Credit Rating'] = df_merged['Credit Rating'].map({'AAA' : 9, 'AA' : 8, 'A' : 7, 'BBB' : 6, 'BB' : 5, 'B' : 4, 'CCC' : 3, 'CC' : 2, 'C': 1})
 
 
-import pandas as pd
-from sklearn.model_selection import train_test_split
-from sklearn.ensemble import GradientBoostingClassifier
-from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 
-
-# Séparation des caractéristiques (X) et de la variable cible (y)
 X = df_merged.drop(columns=['Risk', 'Credit Rating'], axis=1)
 y = df_merged['Risk']
 
-# Création du modèle de Gradient Boosting
 model = GradientBoostingClassifier(n_estimators=50, learning_rate=0.2, random_state=76)
 
-# Entrainement du modèle
 model.fit(X, y)
 
-# Prédictions sur l'ensemble de test
 predictions = model.predict(X)
 
-# Evaluation du modèle
 accuracy = accuracy_score(y, predictions)
 conf_matrix = confusion_matrix(y, predictions)
 class_report = classification_report(y, predictions)
 
-# Affichage des résultats
 print(f"Accuracy: {accuracy}")
 print("Confusion matrix:")
 print(conf_matrix)
@@ -168,42 +129,25 @@ print("Classification Report:")
 print(class_report)
 
 
-# Création d'un objet PrettyTable
 table3 = PrettyTable(['Company ID', 'Risks'])
 
-# Ajout des données au tableau
 for valeur1, valeur2 in zip(df_merged['Company ID'], predictions):
     table3.add_row([valeur1, valeur2])
 
-# Affichage du tableau
-print(table3)
-
-
-# Creation du CSV
-
-# Creation de la colonne companyID
-
 companyID = df_merged['Company ID']
-
-# Creation de la colonne Risks
 
 Risks = predictions
 
-# Creation du dataframe avec la longueur de la colonne companyID
 min_length = min(len(companyID), len(Risks))
 
-# Create the dataframe with the minimum length
 df = pd.DataFrame(index=range(min_length))
-# Ajout des colonnes au dataframe
 
 df['Company ID'] = companyID
 df['Risks'] = Risks
 
-# Recuperation du nom du fichier csv en argument avec argparse
 parser = argparse.ArgumentParser()
 parser.add_argument("--output", help="predicts")
 
 args = parser.parse_args()
 
-# Creation du fichier csv
 df.to_csv(args.output, index=False, encoding='utf-8')
