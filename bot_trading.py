@@ -54,7 +54,6 @@ def run_bot():
             position = 'buy'
 
         elif last_close < last_ma and position == 'buy':
-            # Vendre si le prix tombe en dessous de la moyenne mobile
             print(f"Vente signalée - Prix actuel : {last_close}, MA : {last_ma}")
             place_order(symbol, 'sell', 0.001)
             position = 'sell'
