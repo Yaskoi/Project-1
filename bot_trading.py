@@ -6,7 +6,6 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, classification_report
 import backtrader as bt
 
-# Étape 1 : Récupérer les données historiques du Bitcoin
 data = yf.download('NVDA', start='2023-01-01', end='2024-01-01')
 
 # Étape 2 : Calculer des indicateurs techniques
