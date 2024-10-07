@@ -7,7 +7,7 @@ from sklearn.metrics import accuracy_score, classification_report
 import backtrader as bt
 
 # Étape 1 : Récupérer les données historiques du Bitcoin
-data = yf.download('BTC-USD', start='2020-01-01', end='2024-01-01')
+data = yf.download('NVDA', start='2023-01-01', end='2024-01-01')
 
 # Étape 2 : Calculer des indicateurs techniques
 def add_indicators(data):
@@ -28,7 +28,10 @@ def add_indicators(data):
 
 data = add_indicators(data)
 
+
+
 # Étape 3 : Préparer les données pour l'apprentissage supervisé
+# Créer la variable cible : 1 si le prix de clôture augmente le lendemain, 0 sinon
 data['Target'] = (data['Close'].shift(-1) > data['Close']).astype(int)
 
 # Sélectionner les caractéristiques (features)
@@ -65,6 +68,10 @@ class MLBasedStrategy(bt.Strategy):
             self.rsi[0]
         ]
 
+        # Vérifier que toutes les valeurs sont disponibles (pour éviter les NaN au début)
+        if None in obs:
+            return
+
         # Créer un DataFrame pour l'observation avec les mêmes noms de colonnes que pour l'entraînement
         obs_df = pd.DataFrame([obs], columns=['SMA_10', 'SMA_50', 'RSI'])
 
@@ -73,10 +80,16 @@ class MLBasedStrategy(bt.Strategy):
 
         # Si le modèle prédit une hausse, acheter
         if not self.position and pred == 1:
-            self.buy(size=3)
+            self.buy(size=5000)
         # Si le modèle prédit une baisse, vendre si on a une position
         elif self.position and pred == 0:
-            self.sell(size=3)
+            self.sell(size=5000)
+
+# Étape 6 : Backtester la stratégie
+
+# Appliquer une perturbation aléatoire sur les prix (ajouter du bruit gaussien)
+noise = np.random.normal(0, 0.02, len(data))
+data['Close'] = data['Close'] * (1 + noise)
 
 # Charger les données de Backtrader
 data_feed = bt.feeds.PandasData(dataname=data)
@@ -89,14 +102,12 @@ cerebro.adddata(data_feed)
 cerebro.addstrategy(MLBasedStrategy)
 
 # Définir le capital de départ
-capital_initial = 250000  
+capital_initial = 250000
+cerebro.broker.setcommission(commission=0.001)
 cerebro.broker.setcash(capital_initial)
 
 # Lancer le backtest
 cerebro.run()
-
-# Afficher le graphique des résultats
-cerebro.plot()
 
 # Obtenir la valeur finale du portefeuille et le rendement
 valeur_finale = cerebro.broker.getvalue()
