@@ -1,65 +1,107 @@
-import ccxt
+import yfinance as yf
 import pandas as pd
-import time
+import numpy as np
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score, classification_report
+import backtrader as bt
 
-api_key = ''
-api_secret = ''
+# Étape 1 : Récupérer les données historiques du Bitcoin
+data = yf.download('BTC-USD', start='2020-01-01', end='2024-01-01')
 
-binance = ccxt.binance({
-    'apiKey': api_key,
-    'secret': api_secret,
-    'enableRateLimit': True
-})
+# Étape 2 : Calculer des indicateurs techniques
+def add_indicators(data):
+    # Moyenne Mobile
+    data['SMA_10'] = data['Close'].rolling(window=10).mean()
+    data['SMA_50'] = data['Close'].rolling(window=50).mean()
+    # Indicateur RSI
+    delta = data['Close'].diff(1)
+    gain = delta.where(delta > 0, 0)
+    loss = -delta.where(delta < 0, 0)
+    avg_gain = gain.rolling(window=14).mean()
+    avg_loss = loss.rolling(window=14).mean()
+    rs = avg_gain / avg_loss
+    data['RSI'] = 100 - (100 / (1 + rs))
+    # Supprimer les valeurs manquantes
+    data.dropna(inplace=True)
+    return data
 
+data = add_indicators(data)
 
-symbol = 'BTC/USDT'  
-timeframe = '1h'
-ma_period = 20 
+# Étape 3 : Préparer les données pour l'apprentissage supervisé
+data['Target'] = (data['Close'].shift(-1) > data['Close']).astype(int)
 
+# Sélectionner les caractéristiques (features)
+features = ['SMA_10', 'SMA_50', 'RSI']
+X = data[features]
+y = data['Target']
 
-def get_data(symbol, timeframe, limit=100):
-    """Récupère les données de marché."""
-    ohlcv = binance.fetch_ohlcv(symbol, timeframe, limit=limit)
-    df = pd.DataFrame(ohlcv, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
-    df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms')
-    return df
+# Séparer les données en ensemble d'entraînement et de test
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, shuffle=False)
 
+# Étape 4 : Construire et entraîner le modèle
+model = RandomForestClassifier(n_estimators=100, random_state=42)
+model.fit(X_train, y_train)
 
-def calculate_ma(data, period):
-    """Calcule la moyenne mobile sur une période donnée."""
-    return data['close'].rolling(window=period).mean()
+# Évaluer le modèle
+y_pred = model.predict(X_test)
+accuracy = accuracy_score(y_test, y_pred)
+print(f'Accuracy: {accuracy:.2f}')
+print(classification_report(y_test, y_pred))
 
+# Étape 5 : Utiliser le modèle dans une stratégie de trading Backtrader
+class MLBasedStrategy(bt.Strategy):
+    def __init__(self):
+        # Définir les indicateurs de Backtrader
+        self.sma_10 = bt.indicators.SimpleMovingAverage(self.datas[0], period=10)
+        self.sma_50 = bt.indicators.SimpleMovingAverage(self.datas[0], period=50)
+        self.rsi = bt.indicators.RelativeStrengthIndex(self.datas[0], period=14)
 
-def place_order(symbol, side, amount):
-    """Place un ordre sur Binance."""
-    order = binance.create_order(symbol, 'market', side, amount)
-    print(f"Ordre {side} passé : {order}")
-    return order
+    def next(self):
+        # Créer une observation pour la journée actuelle
+        obs = [
+            self.sma_10[0],
+            self.sma_50[0],
+            self.rsi[0]
+        ]
 
+        # Créer un DataFrame pour l'observation avec les mêmes noms de colonnes que pour l'entraînement
+        obs_df = pd.DataFrame([obs], columns=['SMA_10', 'SMA_50', 'RSI'])
 
-def run_bot():
-    position = None 
+        # Prédire l'action à entreprendre
+        pred = model.predict(obs_df)[0]
 
-    while True:
-        data = get_data(symbol, timeframe)
+        # Si le modèle prédit une hausse, acheter
+        if not self.position and pred == 1:
+            self.buy(size=3)
+        # Si le modèle prédit une baisse, vendre si on a une position
+        elif self.position and pred == 0:
+            self.sell(size=3)
 
-        data['ma'] = calculate_ma(data, ma_period)
+# Charger les données de Backtrader
+data_feed = bt.feeds.PandasData(dataname=data)
 
-        last_close = data['close'].iloc[-1]  
-        last_ma = data['ma'].iloc[-1]  
+# Créer une instance de Cerebro
+cerebro = bt.Cerebro()
+cerebro.adddata(data_feed)
 
-        if last_close > last_ma and position != 'buy':
-            print(f"Achat signalé - Prix actuel : {last_close}, MA : {last_ma}")
-            place_order(symbol, 'buy', 0.001) 
-            position = 'buy'
+# Ajouter la stratégie
+cerebro.addstrategy(MLBasedStrategy)
 
-        elif last_close < last_ma and position == 'buy':
-            print(f"Vente signalée - Prix actuel : {last_close}, MA : {last_ma}")
-            place_order(symbol, 'sell', 0.001)
-            position = 'sell'
+# Définir le capital de départ
+capital_initial = 250000  
+cerebro.broker.setcash(capital_initial)
 
-        time.sleep(30)
+# Lancer le backtest
+cerebro.run()
 
+# Afficher le graphique des résultats
+cerebro.plot()
 
-if __name__ == '__main__':
-    run_bot()
+# Obtenir la valeur finale du portefeuille et le rendement
+valeur_finale = cerebro.broker.getvalue()
+rendement = (valeur_finale - capital_initial) / capital_initial * 100
+
+# Afficher la valeur finale et le rendement
+print(f"Valeur finale du portefeuille : {valeur_finale:.2f} USD")
+print(f"Rendement total : {rendement:.2f} %")
