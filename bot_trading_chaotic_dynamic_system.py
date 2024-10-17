@@ -9,7 +9,7 @@ import warnings
 warnings.filterwarnings("ignore")
 
 # Fonction pour simuler le système de Lorenz
-def lorenz_system(state, t, sigma=20, rho=30, beta=3.5):
+def lorenz_system(state, t, sigma=10, rho=28, beta=3):
     x, y, z = state
     dxdt = sigma * (y - x)
     dydt = x * (rho - z) - y
@@ -29,14 +29,14 @@ lorenz_data = simulate_lorenz(initial_state, t)
 x, y, z = lorenz_data.T
 
 # Liste des actifs pour le portefeuille
-assets = ['NVDA', 'AAPL', 'PLTR', 'TSLA', 'MRNA', 'PFE', 'ILMN', 
-          'MC.PA', 'NKE', 'BABA', 'XOM', 'NEM', 'GOLD', 
-          'JPM', 'BRK-B', 'BLK', 'PLD', 'AMT', 'DG.PA', 
-          '^TNX', 'BND', 'BTC-USD', 'ETH-USD', '005930.KS', 
-          'NSRGY', 'TM', 'RIO', 'TCEHY', 'KO', 'ENB']
+assets = ['TSLA', 'NVDA', 'PLTR', 'MRNA', 'BNTX', 'ARKK', 'BTC-USD', 'ETH-USD', 
+          'DOGE-USD', 'RIVN', 'COIN', 'SQ', 'SPCE', 'TDOC', 'DOCU', 'SNOW', 'ZM', 
+          'NIO', 'ROKU', 'CRSP', 'AMC', 'GME', 'BB', 'TLRY', 'BNGO', 'NKLA', 'MARA', 
+          'RIOT', 'SOFI', 'LCID']
+
 
 # Télécharger les données des actifs sur Yahoo Finance
-data = yf.download(assets, start="2023-01-01", end="2024-01-01")['Adj Close']
+data = yf.download(assets, interval='1h', start="2023-01-01", end="2024-01-01")['Adj Close']
 
 # Calculer les rendements quotidiens pour chaque actif
 returns = data.pct_change().dropna()
@@ -108,7 +108,7 @@ returns['Cumulative_Buy_Hold_Returns'] = (1 + returns['Portfolio_Returns']).cump
 sharpe_ratio = returns['Strategy_Returns'].mean() / returns['Strategy_Returns'].std() * np.sqrt(252)
 
 # Affichage des résultats
-plt.figure(figsize=(10, 5))
+plt.figure(figsize=(14, 8))
 plt.plot(returns['Cumulative_Strategy_Returns'], label="Stratégie ML + Lorenz")
 plt.plot(returns['Cumulative_Buy_Hold_Returns'], label="Buy & Hold Portfolio")
 plt.title(f"Stratégie de Trading ML + Lorenz vs Buy & Hold Portfolio (Sharpe Ratio: {sharpe_ratio:.2f})")
@@ -118,7 +118,7 @@ plt.show()
 # Afficher les rendements et le Sharpe Ratio
 total_return_strategy = returns['Cumulative_Strategy_Returns'].iloc[-1] - 1
 total_return_buy_hold = returns['Cumulative_Buy_Hold_Returns'].iloc[-1] - 1
-print(f"Valeur finale du portefeuille ML : {(1 + total_return_strategy) * 1000000:.2F}")
+print(f"Valeur finale du portefeuille ML en Stratégie : {(1 + total_return_strategy) * 1000000:.2F}")
 print(f"Rendement total de la stratégie ML : {total_return_strategy * 100:.2f}%")
 print(f"Sharpe Ratio : {sharpe_ratio:.2f}")
 
@@ -129,6 +129,6 @@ volatility = returns['Portfolio_Returns'].std()
 sharpe_ratio_buy_hold = (mean_return - risk_free_rate) / volatility * np.sqrt(252)
 
 # Affichage du résultat du Sharpe Ratio pour Buy & Hold Portfolio
-print(f"Valeur finale du portefeuille ML : {(1 + total_return_buy_hold) * 1000000:.2F}")
+print(f"Valeur finale du portefeuille ML en Buy & Hold : {(1 + total_return_buy_hold) * 1000000:.2F}")
 print(f"Rendement total du portefeuille Buy & Hold : {total_return_buy_hold * 100:.2f}%")
 print(f"Sharpe Ratio pour le portefeuille Buy & Hold : {sharpe_ratio_buy_hold:.2f}")
