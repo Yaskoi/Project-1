@@ -30,7 +30,7 @@ x, y, z = lorenz_data.T
 
 # Liste des actifs pour le portefeuille
 assets = ['TSLA', 'NVDA', 'PLTR', 'MRNA', 'BNTX', 'ARKK', 'BTC-USD', 'ETH-USD', 
-          'DOGE-USD', 'RIVN', 'COIN', 'SQ', 'SPCE', 'TDOC', 'DOCU', 'SNOW', 'ZM', 
+          'GOLD', 'RIVN', 'COIN', 'SQ', 'SPCE', 'TDOC', 'DOCU', 'SNOW', 'ZM', 
           'NIO', 'ROKU', 'CRSP', 'AMC', 'GME', 'BB', 'TLRY', 'BNGO', 'NKLA', 'MARA', 
           'RIOT', 'SOFI', 'LCID']
 
@@ -72,7 +72,7 @@ X = returns[['Lorenz_x', 'Lorenz_y', 'Lorenz_z'] + [f'Lag1_{asset}' for asset in
 y = np.where(np.dot(returns[assets], weights) > 0, 1, 0)  # 1 = achat (rendement moyen pondéré positif), 0 = vente (rendement moyen pondéré négatif)
 
 # Diviser en ensembles d'entraînement et de test
-train_size = int(0.8 * len(returns))
+train_size = int(0.75 * len(returns))
 X_train, X_test = X[:train_size], X[train_size:]
 y_train, y_test = y[:train_size], y[train_size:]
 
@@ -123,7 +123,7 @@ print(f"Rendement total de la stratégie ML : {total_return_strategy * 100:.2f}%
 print(f"Sharpe Ratio : {sharpe_ratio:.2f}")
 
 # Calcul du Sharpe Ratio pour Buy & Hold Portfolio
-risk_free_rate = 0.045 / 252  # Taux sans risque approximé sur une base quotidienne
+risk_free_rate = 0.01 / 252  # Taux sans risque approximé sur une base quotidienne
 mean_return = returns['Portfolio_Returns'].mean()
 volatility = returns['Portfolio_Returns'].std()
 sharpe_ratio_buy_hold = (mean_return - risk_free_rate) / volatility * np.sqrt(252)
