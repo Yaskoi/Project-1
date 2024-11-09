@@ -1,119 +1,88 @@
+import backtrader as bt
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
-from scipy.integrate import odeint
-import yfinance as yf
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import accuracy_score
-import warnings
-warnings.filterwarnings("ignore")
+import yfinance as yf
 
-# Fonction pour simuler le système de Mackey-Glass
-def mackey_glass(x, t, beta=0.2, gamma=0.1, n=10, tau=25):
-    if t - tau < 0:
-        xtau = 0.5  # Condition initiale pour le délai
-    else:
-        xtau = x[int(t - tau)]
-    dxdt = beta * xtau / (1 + xtau**n) - gamma * x[t]
-    return dxdt
-
-# Simuler le système de Mackey-Glass
-def simulate_mackey_glass(initial_value, t_points, tau=25):
-    x = np.zeros(len(t_points))
-    x[0] = initial_value
-    for t in range(1, len(t_points)):
-        x[t] = x[t - 1] + mackey_glass(x, t, tau=tau)
-    return x
-
-# Paramètres pour la simulation de Mackey-Glass
-initial_value = 0.5
-t_points = np.arange(0, 1000, 1)  # Points de temps pour la simulation
-
-# Simuler le système de Mackey-Glass
-mackey_glass_data = simulate_mackey_glass(initial_value, t_points)
-
-# Étape 1 : Obtenir les données historiques depuis Yahoo Finance
-data_1 = yf.download("SHIB-USD", interval='1m', start="2024-10-01", end="2024-10-05")
-data_2 = yf.download("SHIB-USD", interval='1m', start="2024-10-06", end="2024-10-13")
-data_3 = yf.download("SHIB-USD", interval='1m', start="2024-10-14", end="2024-10-21")
-data_4 = yf.download("SHIB-USD", interval='1m', start="2024-10-22", end="2024-10-29")
+# Télécharger les données de SHIB-USD pour backtest
+data_1 = yf.download("SHIB-USD", interval='1m', start="2024-10-11", end="2024-10-16")
+data_2 = yf.download("SHIB-USD", interval='1m', start="2024-10-17", end="2024-10-24")
+data_3 = yf.download("SHIB-USD", interval='1m', start="2024-10-25", end="2024-11-01")
+data_4 = yf.download("SHIB-USD", interval='1m', start="2024-11-02", end="2024-11-09")
 
 data = pd.concat([data_1, data_2, data_3, data_4])
-
-# Calcul des rendements
 data['Returns'] = data['Adj Close'].pct_change()
-
-# Intégrer les signaux chaotiques (Mackey-Glass) aux données du BTC
-data['Mackey_Glass'] = np.interp(np.arange(len(data)), np.arange(len(mackey_glass_data)), mackey_glass_data)
-
-# Appliquer une perturbation aléatoire sur les prix (ajouter du bruit gaussien)
-noise = np.random.normal(0, 0.01, len(data))
-data['Returns'] = data['Returns'] * (1 + noise)
-
-# Création des features pour le modèle de machine learning
-data['Lag1_Returns'] = data['Returns'].shift(1)
-data['Lag2_Returns'] = data['Returns'].shift(2)
-
-# Retirer les données manquantes
 data.dropna(inplace=True)
 
-# Définir les features et la variable cible pour le modèle
+# Ajouter le signal Mackey-Glass
+def mackey_glass(tau=25):
+    x = [0.5]
+    for t in range(1, len(data)):
+        x_t = x[-1] + 0.2 * x[-tau] / (1 + x[-tau]**10) - 0.1 * x[-1] if t >= tau else 0.5
+        x.append(x_t)
+    return np.array(x)
+
+data['Mackey_Glass'] = mackey_glass()
+
+# Créer des lags pour le modèle
+data['Lag1_Returns'] = data['Returns'].shift(1)
+data['Lag2_Returns'] = data['Returns'].shift(2)
+data.dropna(inplace=True)
+
+# Diviser en X et y pour l'entraînement
 X = data[['Mackey_Glass', 'Lag1_Returns', 'Lag2_Returns']]
-y = np.where(data['Returns'] > 0, 1, 0)  # 1 = achat (rendements positifs), 0 = vente (rendements négatifs)
+y = np.where(data['Returns'] > 0, 1, 0)
 
-# Diviser en ensembles d'entraînement et de test
+# Entraîner le modèle
 train_size = int(0.8 * len(data))
-X_train, X_test = X[:train_size], X[train_size:]
-y_train, y_test = y[:train_size], y[train_size:]
-
-# Modèle de machine learning : Random Forest Classifier
-model = RandomForestClassifier(n_estimators=100, random_state=42)
+X_train, y_train = X[:train_size], y[:train_size]
+model = RandomForestClassifier(n_estimators=1000, random_state=42)
 model.fit(X_train, y_train)
 
-# Prédictions et signaux de trading
-data['ML_Signal'] = model.predict(X)
+# Classe de stratégie pour Backtrader
+class MLTradingStrategy(bt.Strategy):
+    def __init__(self):
+        self.model = model
+        self.signals = self.model.predict(X)
 
-# Calcul de la précision du modèle
-train_accuracy = accuracy_score(y_train, model.predict(X_train))
-test_accuracy = accuracy_score(y_test, model.predict(X_test))
-print(f"Train Accuracy: {train_accuracy:.2f}")
-print(f"Test Accuracy: {test_accuracy:.2f}")
+    def next(self):
+        # Utiliser l'index actuel de Backtrader pour éviter les dépassements
+        idx = len(self)
+        if idx >= len(self.signals):  # Vérifier que l'index est dans la portée
+            return  # Sortir si on dépasse la longueur des signaux
 
-# Générer des positions de trading basées sur les prédictions du modèle
-data['Position'] = data['ML_Signal'].shift(1)
-data['Strategy_Returns'] = data['Position'] * data['Returns']
+        if self.signals[idx] == 1 and not self.position:
+            self.buy(size=500000)  # Acheter avec tout le capital disponible
+        elif self.signals[idx] == 0 and self.position:
+            self.sell(size=500000)  # Vendre toutes les positions ouvertes (all-in)
 
-# Calcul du rendement cumulé et du Sharpe Ratio
-data['Cumulative_Strategy_Returns'] = (1 + data['Strategy_Returns']).cumprod()
+# Initialiser Cerebro et ajouter les données et la stratégie
+cerebro = bt.Cerebro()
+cerebro.addstrategy(MLTradingStrategy)
 
-# Calcul du Sharpe Ratio
-sharpe_ratio = data['Strategy_Returns'].mean() / data['Strategy_Returns'].std() * np.sqrt(252)
+# Convertir les données pour Backtrader
+data_feed = bt.feeds.PandasData(dataname=data)
+cerebro.adddata(data_feed)
 
-# Affichage des résultats
-plt.figure(figsize=(10, 6))
-plt.plot(data['Cumulative_Strategy_Returns'], label="Stratégie ML + Mackey-Glass + Bruit")
-plt.plot((1 + data['Returns']).cumprod(), label="Buy & Hold BTC")
-plt.title(f"Stratégie de Trading ML + Mackey-Glass + Bruit vs Buy & Hold (Sharpe Ratio: {sharpe_ratio:.2f})")
-plt.legend()
-plt.show()
+# Ajouter l'analyseur SharpeRatio
+cerebro.addanalyzer(bt.analyzers.SharpeRatio, _name='sharpe', timeframe=bt.TimeFrame.Days, riskfreerate=0.045)
 
-# Afficher les rendements et le Sharpe Ratio
-total_return = data['Cumulative_Strategy_Returns'].iloc[-1] - 1
-print(f"Valeur finale du portefeuille : {(1 + total_return) * 1000:.2F}")
-print(f"Rendement total de la stratégie : {total_return * 100:.2f}%")
+# Définir le capital de départ
+capital_initial = 10
+cerebro.broker.setcash(capital_initial)
+
+# Exécuter le backtest
+results = cerebro.run()
+cerebro.plot()
+
+# Obtenir la valeur finale du portefeuille et le rendement
+valeur_finale = cerebro.broker.getvalue()
+rendement = (valeur_finale - capital_initial) / capital_initial * 100
+
+# Afficher la valeur finale et le rendement
+print(f"Valeur finale du portefeuille : {valeur_finale:.2f} USD")
+print(f"Rendement total : {rendement:.2f} %")
+
+# Extraire et afficher le Sharpe Ratio
+sharpe_ratio = results[0].analyzers.sharpe.get_analysis()['sharperatio']
 print(f"Sharpe Ratio : {sharpe_ratio:.2f}")
-
-# Paramètres pour le calcul du Sharpe Ratio
-risk_free_rate = 0.01 / 252  # Taux sans risque approximé sur une base quotidienne (1% par an)
-
-# Calcul du rendement moyen et de l'écart-type
-mean_return = data['Returns'].mean()
-volatility = data['Returns'].std()
-
-return_buy_hold = (data['Adj Close'].iloc[-1] - data['Adj Close'].iloc[0]) / data['Adj Close'].iloc[0]
-print(f"Valeur finale du portefeuille en Buy & Hold : {(1 + return_buy_hold) * 1000:.2F}")
-print(f"Rendement total pour la stratégie Buy & Hold : {return_buy_hold * 100:.2f}%")
-
-# Calcul du Sharpe Ratio pour Buy & Hold
-sharpe_ratio_buy_hold = (mean_return - risk_free_rate) / volatility * np.sqrt(252)
-print(f"Sharpe Ratio pour la stratégie Buy & Hold : {sharpe_ratio_buy_hold:.2f}")
