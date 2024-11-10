@@ -52,9 +52,9 @@ class MLTradingStrategy(bt.Strategy):
             return  # Sortir si on dépasse la longueur des signaux
 
         if self.signals[idx] == 1 and not self.position:
-            self.buy(size=500000)  # Acheter avec tout le capital disponible
+            self.buy(size=5000000)
         elif self.signals[idx] == 0 and self.position:
-            self.sell(size=500000)  # Vendre toutes les positions ouvertes (all-in)
+            self.sell(size=self.position.size)
 
 # Initialiser Cerebro et ajouter les données et la stratégie
 cerebro = bt.Cerebro()
@@ -68,7 +68,7 @@ cerebro.adddata(data_feed)
 cerebro.addanalyzer(bt.analyzers.SharpeRatio, _name='sharpe', timeframe=bt.TimeFrame.Days, riskfreerate=0.045)
 
 # Définir le capital de départ
-capital_initial = 10
+capital_initial = 100
 cerebro.broker.setcash(capital_initial)
 
 # Exécuter le backtest
