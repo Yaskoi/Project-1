@@ -4,13 +4,18 @@ import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
 import yfinance as yf
 
-# Télécharger les données de SHIB-USD pour backtest
-data_1 = yf.download("SHIB-USD", interval='1m', start="2024-10-11", end="2024-10-16")
-data_2 = yf.download("SHIB-USD", interval='1m', start="2024-10-17", end="2024-10-24")
-data_3 = yf.download("SHIB-USD", interval='1m', start="2024-10-25", end="2024-11-01")
-data_4 = yf.download("SHIB-USD", interval='1m', start="2024-11-02", end="2024-11-09")
+# Télécharger les données financières pour backtest
+
+assets = ['SHIB-USD']
+
+data_1 = yf.download(assets, interval='1m', start="2024-10-12", end="2024-10-16")
+data_2 = yf.download(assets, interval='1m', start="2024-10-17", end="2024-10-24")
+data_3 = yf.download(assets, interval='1m', start="2024-10-25", end="2024-11-01")
+data_4 = yf.download(assets, interval='1m', start="2024-11-02", end="2024-11-09")
 
 data = pd.concat([data_1, data_2, data_3, data_4])
+
+
 data['Returns'] = data['Adj Close'].pct_change()
 data.dropna(inplace=True)
 
@@ -18,7 +23,7 @@ data.dropna(inplace=True)
 def mackey_glass(tau=25):
     x = [0.5]
     for t in range(1, len(data)):
-        x_t = x[-1] + 0.2 * x[-tau] / (1 + x[-tau]**10) - 0.1 * x[-1] if t >= tau else 0.5
+        x_t = x[-1] + 0.2 * x[-tau] / (1 + x[-tau]**15) - 0.15 * x[-1] if t >= tau else 0.5
         x.append(x_t)
     return np.array(x)
 
@@ -50,11 +55,13 @@ class MLTradingStrategy(bt.Strategy):
         idx = len(self)
         if idx >= len(self.signals):  # Vérifier que l'index est dans la portée
             return  # Sortir si on dépasse la longueur des signaux
+        
+        taille_position = capital_initial / data['Adj Close'].iloc[0]
 
         if self.signals[idx] == 1 and not self.position:
-            self.buy(size=5000000)
+            self.buy(size = taille_position)
         elif self.signals[idx] == 0 and self.position:
-            self.sell(size=self.position.size)
+            self.sell(size = self.position.size)
 
 # Initialiser Cerebro et ajouter les données et la stratégie
 cerebro = bt.Cerebro()
