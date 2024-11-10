@@ -25,11 +25,13 @@ t = np.linspace(0, 40, 10000)
 lorenz_data = simulate_lorenz(initial_state, t)
 x, y, z = lorenz_data.T
 
-# Télécharger les données de SHIB-USD pour backtest
-data_1 = yf.download("SHIB-USD", interval='1m', start="2024-10-11", end="2024-10-16")
-data_2 = yf.download("SHIB-USD", interval='1m', start="2024-10-17", end="2024-10-24")
-data_3 = yf.download("SHIB-USD", interval='1m', start="2024-10-25", end="2024-11-01")
-data_4 = yf.download("SHIB-USD", interval='1m', start="2024-11-02", end="2024-11-09")
+asset = ['SHIB-USD']
+
+# Télécharger les données financières pour backtest
+data_1 = yf.download(asset, interval='1m', start="2024-10-11", end="2024-10-16")
+data_2 = yf.download(asset, interval='1m', start="2024-10-17", end="2024-10-24")
+data_3 = yf.download(asset, interval='1m', start="2024-10-25", end="2024-11-01")
+data_4 = yf.download(asset, interval='1m', start="2024-11-02", end="2024-11-09")
 
 data = pd.concat([data_1, data_2, data_3, data_4])
 
@@ -69,12 +71,14 @@ class MLTradingStrategy(bt.Strategy):
         idx = len(self)
         if idx >= len(self.signals):
             return  # S'assurer qu'on ne dépasse pas la taille des signaux prédits
+
+        taille_position = capital_initial / data['Close'].iloc[0]
         
         # Générer des ordres en fonction du signal
         if self.signals[idx] == 1 and not self.position:
-            self.order = self.buy(size = 500000)
+            self.order = self.buy(size = taille_position)
         elif self.signals[idx] == 0 and self.position:
-            self.order = self.sell(size= self.position.size)
+            self.order = self.sell(size = self.position.size)
 
 # Initialiser Cerebro et ajouter les données et la stratégie
 cerebro = bt.Cerebro()
@@ -85,7 +89,7 @@ data_feed = bt.feeds.PandasData(dataname=data)
 cerebro.adddata(data_feed)
 
 # Ajouter un analyseur SharpeRatio
-cerebro.addanalyzer(bt.analyzers.SharpeRatio, _name='sharpe', timeframe=bt.TimeFrame.Days, riskfreerate=0.01)
+cerebro.addanalyzer(bt.analyzers.SharpeRatio, _name='sharpe', timeframe=bt.TimeFrame.Days, riskfreerate = 0.03) # Taux actuel du Livret Jeune
 
 # Définir le capital de départ
 capital_initial = 100
