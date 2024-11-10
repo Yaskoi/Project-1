@@ -6,12 +6,12 @@ import yfinance as yf
 
 # Télécharger les données financières pour backtest
 
-assets = ['SHIB-USD']
+asset = ['SHIB-USD']
 
-data_1 = yf.download(assets, interval='1m', start="2024-10-12", end="2024-10-16")
-data_2 = yf.download(assets, interval='1m', start="2024-10-17", end="2024-10-24")
-data_3 = yf.download(assets, interval='1m', start="2024-10-25", end="2024-11-01")
-data_4 = yf.download(assets, interval='1m', start="2024-11-02", end="2024-11-09")
+data_1 = yf.download(asset, interval='1m', start="2024-10-12", end="2024-10-16")
+data_2 = yf.download(asset, interval='1m', start="2024-10-17", end="2024-10-24")
+data_3 = yf.download(asset, interval='1m', start="2024-10-25", end="2024-11-01")
+data_4 = yf.download(asset, interval='1m', start="2024-11-02", end="2024-11-09")
 
 data = pd.concat([data_1, data_2, data_3, data_4])
 
