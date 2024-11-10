@@ -1,12 +1,9 @@
+import backtrader as bt
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 from scipy.integrate import odeint
-import yfinance as yf
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import accuracy_score
-import warnings
-warnings.filterwarnings("ignore")
+import yfinance as yf
 
 # Fonction pour simuler le système de Lorenz
 def lorenz_system(state, t, sigma=18, rho=28, beta=3):
@@ -28,17 +25,18 @@ t = np.linspace(0, 40, 10000)
 lorenz_data = simulate_lorenz(initial_state, t)
 x, y, z = lorenz_data.T
 
-# Étape 1 : Obtenir les données historiques depuis Yahoo Finance
-data_1 = yf.download("SHIB-USD", interval='1m', start="2024-09-25", end="2024-09-29")
-data_2 = yf.download("SHIB-USD", interval='1m', start="2024-09-30", end="2024-10-07")
-data_3 = yf.download("SHIB-USD", interval='1m', start="2024-10-08", end="2024-10-15")
-data_4 = yf.download("SHIB-USD", interval='1m', start="2024-10-16", end="2024-10-23")
+# Télécharger les données de SHIB-USD pour backtest
+data_1 = yf.download("SHIB-USD", interval='1m', start="2024-10-11", end="2024-10-16")
+data_2 = yf.download("SHIB-USD", interval='1m', start="2024-10-17", end="2024-10-24")
+data_3 = yf.download("SHIB-USD", interval='1m', start="2024-10-25", end="2024-11-01")
+data_4 = yf.download("SHIB-USD", interval='1m', start="2024-11-02", end="2024-11-09")
 
 data = pd.concat([data_1, data_2, data_3, data_4])
 
+# Calcul des rendements
 data['Returns'] = data['Adj Close'].pct_change()
 
-# Intégrer les signaux chaotiques (Lorenz) aux données du BTC
+# Intégrer les signaux chaotiques (Lorenz) aux données
 data['Lorenz_x'] = np.interp(np.arange(len(data)), np.arange(len(lorenz_data)), x)
 data['Lorenz_y'] = np.interp(np.arange(len(data)), np.arange(len(lorenz_data)), y)
 data['Lorenz_z'] = np.interp(np.arange(len(data)), np.arange(len(lorenz_data)), z)
@@ -46,69 +44,65 @@ data['Lorenz_z'] = np.interp(np.arange(len(data)), np.arange(len(lorenz_data)), 
 # Création des features pour le modèle de machine learning
 data['Lag1_Returns'] = data['Returns'].shift(1)
 data['Lag2_Returns'] = data['Returns'].shift(2)
-
-# Retirer les données manquantes
 data.dropna(inplace=True)
 
-# Définir les features et la variable cible pour le modèle
+# Diviser en X et y pour l'entraînement
 X = data[['Lorenz_x', 'Lorenz_y', 'Lorenz_z', 'Lag1_Returns', 'Lag2_Returns']]
-y = np.where(data['Returns'] > 0, 1, 0)  # 1 = achat (rendements positifs), 0 = vente (rendements négatifs)
+y = np.where(data['Returns'] > 0, 1, 0)
 
-# Diviser en ensembles d'entraînement et de test
+# Entraîner le modèle
 train_size = int(0.8 * len(data))
-X_train, X_test = X[:train_size], X[train_size:]
-y_train, y_test = y[:train_size], y[train_size:]
-
-# Modèle de machine learning : Random Forest Classifier
+X_train, y_train = X[:train_size], y[:train_size]
 model = RandomForestClassifier(n_estimators=100, random_state=42)
 model.fit(X_train, y_train)
 
-# Prédictions et signaux de trading
-data['ML_Signal'] = model.predict(X)
+# Classe de stratégie pour Backtrader
+class MLTradingStrategy(bt.Strategy):
+    def __init__(self):
+        self.data_close = self.datas[0].close
+        self.model = model
+        self.signals = self.model.predict(X)  # Prédire sur tout le jeu de données
+        self.order = None
 
-# Calcul de la précision du modèle
-train_accuracy = accuracy_score(y_train, model.predict(X_train))
-test_accuracy = accuracy_score(y_test, model.predict(X_test))
-print(f"Train Accuracy: {train_accuracy:.2f}")
-print(f"Test Accuracy: {test_accuracy:.2f}")
+    def next(self):
+        # Index actuel pour accéder aux signaux prédits
+        idx = len(self)
+        if idx >= len(self.signals):
+            return  # S'assurer qu'on ne dépasse pas la taille des signaux prédits
+        
+        # Générer des ordres en fonction du signal
+        if self.signals[idx] == 1 and not self.position:
+            self.order = self.buy(size = 500000)
+        elif self.signals[idx] == 0 and self.position:
+            self.order = self.sell(size= self.position.size)
 
-# Générer des positions de trading basées sur les prédictions du modèle
-data['Position'] = data['ML_Signal'].shift(1)
-data['Strategy_Returns'] = data['Position'] * data['Returns']
+# Initialiser Cerebro et ajouter les données et la stratégie
+cerebro = bt.Cerebro()
+cerebro.addstrategy(MLTradingStrategy)
 
-# Calcul du rendement cumulé et du Sharpe Ratio
-data['Cumulative_Strategy_Returns'] = (1 + data['Strategy_Returns']).cumprod()
+# Convertir les données pour Backtrader
+data_feed = bt.feeds.PandasData(dataname=data)
+cerebro.adddata(data_feed)
 
-# Calcul du Sharpe Ratio
-sharpe_ratio = data['Strategy_Returns'].mean() / data['Strategy_Returns'].std() * np.sqrt(252)
+# Ajouter un analyseur SharpeRatio
+cerebro.addanalyzer(bt.analyzers.SharpeRatio, _name='sharpe', timeframe=bt.TimeFrame.Days, riskfreerate=0.01)
 
-# Affichage des résultats
-plt.figure(figsize=(10, 6))
-plt.plot(data['Cumulative_Strategy_Returns'], label="Stratégie ML + Lorenz")
-plt.plot((1 + data['Returns']).cumprod(), label="Buy & Hold BTC")
-plt.title(f"Stratégie de Trading ML + Lorenz vs Buy & Hold (Sharpe Ratio: {sharpe_ratio:.2f})")
-plt.legend()
-plt.show()
+# Définir le capital de départ
+capital_initial = 100
+cerebro.broker.setcash(capital_initial)
 
-# Afficher les rendements et le Sharpe Ratio
-total_return = data['Cumulative_Strategy_Returns'].iloc[-1] - 1
-print(f"Valeur finale du portefeuille : {(1 + total_return) * 1000:.2F}")
-print(f"Rendement total de la stratégie : {total_return * 100:.2f}%")
+# Exécuter le backtest
+results = cerebro.run()
+cerebro.plot()
+
+# Obtenir la valeur finale du portefeuille et le rendement
+valeur_finale = cerebro.broker.getvalue()
+rendement = (valeur_finale - capital_initial) / capital_initial * 100
+
+# Afficher la valeur finale et le rendement
+print(f"Valeur finale du portefeuille : {valeur_finale:.2f} USD")
+print(f"Rendement total : {rendement:.2f} %")
+
+# Extraire et afficher le Sharpe Ratio
+sharpe_ratio = results[0].analyzers.sharpe.get_analysis().get('sharperatio')
 print(f"Sharpe Ratio : {sharpe_ratio:.2f}")
-
-# Paramètres pour le calcul du Sharpe Ratio
-risk_free_rate = 0.01 / 252  # Taux sans risque approximé sur une base quotidienne (1% par an)
-
-# Calcul du rendement moyen et de l'écart-type
-mean_return = data['Returns'].mean()
-volatility = data['Returns'].std()
-
-return_buy_hold = (data['Adj Close'].iloc[-1] - data['Adj Close'].iloc[0]) / data['Adj Close'].iloc[0]
-print(f"Valeur finale du portefeuille en Buy & Hold : {(1 + return_buy_hold) * 1000:.2F}")
-print(f"Rendement total pour la stratégie Buy & Hold : {return_buy_hold * 100:.2f}%")
-
-# Calcul du Sharpe Ratio
-sharpe_ratio_buy_hold = (mean_return - risk_free_rate) / volatility * np.sqrt(252)
-
-# Affichage du résultat
-print(f"Sharpe Ratio pour la stratégie Buy & Hold : {sharpe_ratio_buy_hold:.2f}")
