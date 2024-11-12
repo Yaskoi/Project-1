@@ -74,7 +74,7 @@ class MLTradingStrategy(bt.Strategy):
         if idx >= len(self.signals):
             return  # S'assurer qu'on ne dépasse pas la taille des signaux prédits
         
-        taille_position = capital_initial / data['Close'].iloc[0]
+        position_size = capital_initial / data['Close'].iloc[0]
 
         # Générer des ordres en fonction du signal
         if self.signals[idx] == 1 and not self.position:
